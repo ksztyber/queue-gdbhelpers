@@ -1,0 +1,48 @@
+source queue.py
+
+define test_item
+	set $rc = 0
+	queue-size $arg0_head link
+	if $ != MAX_ITEMS
+		echo $arg0: FAIL\n
+		set $rc = -1
+	end
+	queue-size $arg0_single_head link
+	if $ != 1
+		echo $arg0: FAIL\n
+		set $rc = -1
+	end
+	queue-size $arg0_empty_head link
+	if $ != 0
+		echo $arg0: FAIL\n
+		set $rc = -1
+	end
+
+	set $idx = 0
+	while $idx < MAX_ITEMS
+		queue-at $arg0_head link $idx
+		if $.id != $idx + 1
+			echo $arg0: FAIL\n
+			set $idx = MAX_ITEMS
+			set $rc = -1
+		end
+
+		set $idx = $idx + 1
+	end
+
+	if $rc == 0
+		echo $arg0: OK\n
+	end
+end
+
+b main
+commands 1
+	test_item LIST
+	test_item SLIST
+	test_item SIMPLEQ
+	test_item TAILQ
+	test_item STAILQ
+	test_item CIRCLEQ 
+end
+
+run
