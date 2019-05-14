@@ -65,6 +65,27 @@ class Iterator:
         return None
 
 
+def make_iter(head):
+    Container = namedtuple('Container', ['first', 'next'])
+    containers = [Container('lh_first',     'le_next'),
+                  Container('slh_first',    'sle_next'),
+                  Container('stqh_first',   'stqe_next'),
+                  Container('sqh_first',    'sqe_next'),
+                  Container('tqh_first',    'tqe_next'),
+                  Container('cqh_first',    'cqe_next')]
+
+    head = gdb.parse_and_eval(head)
+
+    for c in containers:
+        try:
+            if head[c.first] is not None:
+                return Iterator(c.first, c.next)
+        except gdb.error:
+            pass
+
+    raise ValueError('Unknown container type')
+
+
 def return_result(value):
     if type(value) is gdb.Value:
         dereference = '*' if value.type.code == gdb.TYPE_CODE_PTR else ''
@@ -75,60 +96,45 @@ def return_result(value):
     gdb.execute(cmd)
 
 
-class Command(gdb.Command):
-    def __init__(self, container, action, first, next):
-        gdb.Command.__init__(self,
-                             '{}-{}'.format(container, action),
-                             gdb.COMMAND_DATA,
-                             gdb.COMPLETE_SYMBOL,
-                             True)
-
-        self._name = container
-        self._iter = Iterator(first, next)
-
-    def invoke(self, arg, from_tty):
-        raise NotImplementedError()
-
-
-class SizeCommand(Command):
-    def __init__(self, name, first, next):
-        Command.__init__(self, name, 'size', first, next)
+class SizeCommand(gdb.Command):
+    def __init__(self):
+        gdb.Command.__init__(self, 'queue-size', gdb.COMMAND_DATA,
+                             gdb.COMPLETE_SYMBOL, True)
 
     def invoke(self, arg, from_tty):
         arg_list = gdb.string_to_argv(arg)
 
         if len(arg_list) != 2:
-            print('usage: {}-size HEAD FIELD'.format(self._name))
+            print('usage: queue-size HEAD FIELD')
             return
 
-        return_result(self._iter.size(arg_list[0], arg_list[1]))
+        head, field = arg_list
+        iter = make_iter(head)
+
+        return_result(iter.size(head, field))
 
 
-class AtCommand(Command):
-    def __init__(self, name, first, next):
-        Command.__init__(self, name, 'at', first, next)
+class AtCommand(gdb.Command):
+    def __init__(self):
+        gdb.Command.__init__(self, 'queue-at', gdb.COMMAND_DATA,
+                             gdb.COMPLETE_SYMBOL, True)
 
     def invoke(self, arg, from_tty):
         arg_list = gdb.string_to_argv(arg)
 
         if len(arg_list) != 3:
-            print('usage: {}-at HEAD FIELD INDEX'.format(self._name))
+            print('usage: queue-at HEAD FIELD INDEX')
             return
 
-        entry = self._iter.at(arg_list[0], arg_list[1], int(arg_list[2], 10))
+        head, field, index = arg_list
+        iter = make_iter(head)
+
+        index = gdb.parse_and_eval(index)
+
+        entry = iter.at(head, field, int(str(index), 10))
         if entry is not None:
             return_result(entry)
 
 
-Container = namedtuple('Container', ['name', 'first', 'next'])
-containers = [Container('list', 'lh_first', 'le_next'),
-              Container('slist', 'slh_first', 'sle_next'),
-              Container('stailq', 'stqh_first', 'stqe_next'),
-              Container('simpleq', 'sqh_first', 'sqe_next'),
-              Container('tailq', 'tqh_first', 'tqe_next'),
-              Container('circleq', 'cqh_first', 'cqe_next')]
-
-
-for c in containers:
-    SizeCommand(c.name, c.first, c.next)
-    AtCommand(c.name, c.first, c.next)
+SizeCommand()
+AtCommand()
