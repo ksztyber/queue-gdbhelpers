@@ -14,6 +14,7 @@
 #
 
 from collections import namedtuple
+import functools
 
 
 class Iterator:
@@ -34,7 +35,9 @@ class Iterator:
         return gdb.parse_and_eval(head)[self._first]
 
     def next(self, entry, field):
-        return entry.dereference()[field][self._next]
+        entry = functools.reduce(lambda e, f: e[f], field.split('.'),
+                                 entry.dereference())
+        return entry[self._next]
 
     def size(self, head, field):
         entry = self.first(head)
