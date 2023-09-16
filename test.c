@@ -23,19 +23,32 @@ const int MAX_ITEMS = 128;
 struct type##_item { \
 	unsigned int id; \
 	type##_ENTRY(type##_item) link; \
+	struct { \
+		type##_ENTRY(type##_item) link; \
+	} inner; \
 }; \
 type##_HEAD(, type##_item) type##_head = type##_HEAD_INITIALIZER(type##_head); \
 type##_HEAD(, type##_item) type##_empty_head = type##_HEAD_INITIALIZER(type##_empty_head); \
 type##_HEAD(, type##_item) type##_single_head = type##_HEAD_INITIALIZER(type##_single_head); \
+type##_HEAD(, type##_item) type##_inner_head = type##_HEAD_INITIALIZER(type##_inner_head); \
+type##_HEAD(, type##_item) type##_inner_empty_head = type##_HEAD_INITIALIZER(type##_inner_empty_head); \
+type##_HEAD(, type##_item) type##_inner_single_head = type##_HEAD_INITIALIZER(type##_inner_single_head); \
 static void  __attribute__((constructor)) setup_##type(void) { \
 	struct type##_item *item; \
 	item = calloc(MAX_ITEMS + 1, sizeof(*item)); \
 	item->id = MAX_ITEMS; \
 	type##_INSERT_HEAD(&type##_single_head, item, link); item++; \
-	if (!item) abort(); \
 	for (int i = 0; i < MAX_ITEMS; ++i) { \
 		item->id = MAX_ITEMS - i; \
 		type##_INSERT_HEAD(&type##_head, item, link); \
+		item++; \
+	} \
+	item = calloc(MAX_ITEMS + 1, sizeof(*item)); \
+	item->id = MAX_ITEMS; \
+	type##_INSERT_HEAD(&type##_inner_single_head, item, inner.link); item++; \
+	for (int i = 0; i < MAX_ITEMS; ++i) { \
+		item->id = MAX_ITEMS - i; \
+		type##_INSERT_HEAD(&type##_inner_head, item, inner.link); \
 		item++; \
 	} \
 }
