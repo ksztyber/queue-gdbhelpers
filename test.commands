@@ -48,3 +48,5 @@ commands 1
 end
 
 run
+continue
+quit
