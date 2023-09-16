@@ -35,6 +35,8 @@ define test_item
 	end
 end
 
+set pagination off
+
 b main
 commands 1
 	test_item LIST
