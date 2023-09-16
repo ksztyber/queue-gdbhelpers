@@ -1,20 +1,24 @@
 source queue.py
 
+define print_status
+	printf "%-10s %s\n", "$arg0:", "$arg1"
+end
+
 define test_item
 	set $rc = 0
 	queue-size $arg0_head link
 	if $ != MAX_ITEMS
-		echo $arg0: FAIL\n
+		print_status $arg0 FAIL
 		set $rc = -1
 	end
 	queue-size $arg0_single_head link
 	if $ != 1
-		echo $arg0: FAIL\n
+		print_status $arg0 FAIL
 		set $rc = -1
 	end
 	queue-size $arg0_empty_head link
 	if $ != 0
-		echo $arg0: FAIL\n
+		print_status $arg0 FAIL
 		set $rc = -1
 	end
 
@@ -22,7 +26,7 @@ define test_item
 	while $idx < MAX_ITEMS
 		queue-at $arg0_head link $idx
 		if $.id != $idx + 1
-			echo $arg0: FAIL\n
+			print_status $arg0 FAIL
 			set $idx = MAX_ITEMS
 			set $rc = -1
 		end
@@ -31,7 +35,7 @@ define test_item
 	end
 
 	if $rc == 0
-		echo $arg0: OK\n
+		print_status $arg0 OK
 	end
 end
 
