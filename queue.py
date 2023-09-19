@@ -24,14 +24,12 @@ class Iterator:
         self._head = head
         self._field = field
 
-    def _has_next(self, entry):
+    def _is_empty(self, entry):
         if entry == gdb.parse_and_eval(self._head).address:
-            return False
-
+            return True
         if int(str(entry), 16) == 0:
-            return False
-
-        return True
+            return True
+        return False
 
     def next(self, entry):
         entry = functools.reduce(lambda e, f: e[f], self._field.split('.'),
@@ -43,7 +41,7 @@ class Iterator:
         count = 0
 
         try:
-            while self._has_next(entry):
+            while not self._is_empty(entry):
                 entry = self.next(entry)
                 count += 1
         except gdb.MemoryError:
@@ -55,7 +53,7 @@ class Iterator:
         entry = self._first
 
         try:
-            while self._has_next(entry):
+            while not self._is_empty(entry):
                 if index == 0:
                     return entry
 
