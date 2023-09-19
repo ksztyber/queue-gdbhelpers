@@ -1,39 +1,39 @@
 source queue.py
 
 define print_status
-	printf "%-10s %s\n", "$arg0:", "$arg1"
+	printf "%-40s %s\n", $arg0 ":", "$arg1"
 end
 
 define test_item
 	set $rc = 0
 	queue-size $arg0_head link
 	if $ != MAX_ITEMS
-		print_status $arg0 FAIL
+		print_status "$arg0_head size" FAIL
 		set $rc = -1
 	end
 	queue-size $arg0_single_head link
 	if $ != 1
-		print_status $arg0 FAIL
+		print_status "$arg0_single_head size" FAIL
 		set $rc = -1
 	end
 	queue-size $arg0_empty_head link
 	if $ != 0
-		print_status $arg0 FAIL
+		print_status "$arg0_empty_head size" FAIL
 		set $rc = -1
 	end
 	queue-size $arg0_inner_head inner.link
 	if $ != MAX_ITEMS
-		print_status $arg0 FAIL
+		print_status "$arg0_inner_head size" FAIL
 		set $rc = -1
 	end
 	queue-size $arg0_inner_single_head inner.link
 	if $ != 1
-		print_status $arg0 FAIL
+		print_status "$arg0_inner_single_head size" FAIL
 		set $rc = -1
 	end
 	queue-size $arg0_inner_empty_head inner.link
 	if $ != 0
-		print_status $arg0 FAIL
+		print_status "$arg0_inner_empty_head size" FAIL
 		set $rc = -1
 	end
 
@@ -41,7 +41,7 @@ define test_item
 	while $idx < MAX_ITEMS
 		queue-at $arg0_head link $idx
 		if $.id != $idx + 1
-			print_status $arg0 FAIL
+			print_status "$arg0_head at" FAIL
 			set $idx = MAX_ITEMS
 			set $rc = -1
 		end
@@ -53,7 +53,7 @@ define test_item
 	while $idx < MAX_ITEMS
 		queue-at $arg0_inner_head inner.link $idx
 		if $.id != $idx + 1
-			print_status $arg0 FAIL
+			print_status "$arg0_inner_head at" FAIL
 			set $idx = MAX_ITEMS
 			set $rc = -1
 		end
@@ -62,7 +62,7 @@ define test_item
 	end
 
 	if $rc == 0
-		print_status $arg0 OK
+		print_status "$arg0" OK
 	end
 end
 
