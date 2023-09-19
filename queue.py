@@ -23,6 +23,7 @@ class Iterator:
         self._first = gdb.parse_and_eval(head)[first]
         self._head = head
         self._field = field
+        self._current = None
 
     def _is_empty(self, entry):
         if entry == gdb.parse_and_eval(self._head).address:
@@ -31,37 +32,32 @@ class Iterator:
             return True
         return False
 
-    def next(self, entry):
-        entry = functools.reduce(lambda e, f: e[f], self._field.split('.'),
-                                 entry.dereference())
-        return entry[self._next]
+    def __iter__(self):
+        self._current = None if self._is_empty(self._first) else self._first
+        return self
+
+    def __next__(self):
+        try:
+            if self._current is None:
+                raise StopIteration
+            current = self._current
+            entry = functools.reduce(lambda e, f: e[f], self._field.split('.'),
+                                     self._current.dereference())[self._next]
+            self._current = None if self._is_empty(entry) else entry
+            return current
+        except gdb.MemoryError:
+            raise StopIteration
 
     def size(self):
-        entry = self._first
         count = 0
-
-        try:
-            while not self._is_empty(entry):
-                entry = self.next(entry)
-                count += 1
-        except gdb.MemoryError:
-            pass
-
+        for _ in self:
+            count += 1
         return count
 
     def at(self, index):
-        entry = self._first
-
-        try:
-            while not self._is_empty(entry):
-                if index == 0:
-                    return entry
-
-                entry = self.next(entry)
-                index -= 1
-        except gdb.MemoryError:
-            pass
-
+        for i, entry in enumerate(self):
+            if i == index:
+                return entry
         return None
 
 
