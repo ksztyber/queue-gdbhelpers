@@ -23,6 +23,6 @@ clean:
 	$(Q)rm -f $(app)
 
 test: all
-	$(Q)gdb -x test.commands $(app) | grep -E "OK|FAIL"
+	$(Q)gdb -x test.commands $(app) -ex continue -ex quit | grep -E "OK|FAIL"
 
 .PHONY: all clean test
