@@ -20,7 +20,7 @@ import functools
 class Iterator:
     def __init__(self, first, next, head, field):
         self._next = next
-        self._first = first
+        self._first = gdb.parse_and_eval(head)[first]
         self._head = head
         self._field = field
 
@@ -33,16 +33,13 @@ class Iterator:
 
         return True
 
-    def first(self):
-        return gdb.parse_and_eval(self._head)[self._first]
-
     def next(self, entry):
         entry = functools.reduce(lambda e, f: e[f], self._field.split('.'),
                                  entry.dereference())
         return entry[self._next]
 
     def size(self):
-        entry = self.first()
+        entry = self._first
         count = 0
 
         try:
@@ -55,7 +52,7 @@ class Iterator:
         return count
 
     def at(self, index):
-        entry = self.first()
+        entry = self._first
 
         try:
             while self._has_next(entry):
