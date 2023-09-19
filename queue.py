@@ -70,11 +70,14 @@ def make_iter(head, field):
     raise ValueError('Unknown container type')
 
 
-def print_result(value):
+def print_result(value, expr=None):
     if type(value) is gdb.Value:
         dereference = '*' if value.type.code == gdb.TYPE_CODE_PTR else ''
-        cmd = 'print {}({}){}'.format(dereference, value.type, value)
+        expr = f'.{expr}' if expr is not None else ''
+        cmd = 'print ({}({}){}){}'.format(dereference, value.type, value, expr)
     else:
+        if expr is not None:
+            raise ValueError(f'Invalid expression "{expr}" on object of type {type(value)}')
         cmd = 'print {}'.format(value)
 
     gdb.execute(cmd)
@@ -117,5 +120,23 @@ class AtCommand(gdb.Command):
                 print_result(entry)
 
 
+class ForeachCommand(gdb.Command):
+    def __init__(self):
+        gdb.Command.__init__(self, 'queue-foreach', gdb.COMMAND_DATA,
+                             gdb.COMPLETE_SYMBOL, True)
+
+    def invoke(self, arg, from_tty):
+        arg_list = gdb.string_to_argv(arg)
+
+        if len(arg_list) not in (2, 3):
+            print('usage: queue-foreach HEAD FIELD [EXPR]')
+            return
+
+        head, field, expr, *_ = [*arg_list, None]
+        for entry in make_iter(head, field):
+            print_result(entry, expr)
+
+
 SizeCommand()
 AtCommand()
+ForeachCommand()
