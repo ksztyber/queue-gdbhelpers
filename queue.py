@@ -70,7 +70,7 @@ def make_iter(head, field):
     raise ValueError('Unknown container type')
 
 
-def return_result(value):
+def print_result(value):
     if type(value) is gdb.Value:
         dereference = '*' if value.type.code == gdb.TYPE_CODE_PTR else ''
         cmd = 'print {}({}){}'.format(dereference, value.type, value)
@@ -94,7 +94,7 @@ class SizeCommand(gdb.Command):
 
         head, field = arg_list
         iter = make_iter(head, field)
-        return_result(functools.reduce(lambda v, _: v + 1, iter, 0))
+        print_result(functools.reduce(lambda v, _: v + 1, iter, 0))
 
 
 class AtCommand(gdb.Command):
@@ -114,7 +114,7 @@ class AtCommand(gdb.Command):
 
         for i, entry in enumerate(make_iter(head, field)):
             if i == index:
-                return_result(entry)
+                print_result(entry)
 
 
 SizeCommand()
