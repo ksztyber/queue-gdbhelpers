@@ -48,18 +48,6 @@ class Iterator:
         except gdb.MemoryError:
             raise StopIteration
 
-    def size(self):
-        count = 0
-        for _ in self:
-            count += 1
-        return count
-
-    def at(self, index):
-        for i, entry in enumerate(self):
-            if i == index:
-                return entry
-        return None
-
 
 def make_iter(head, field):
     Container = namedtuple('Container', ['first', 'next'])
@@ -106,8 +94,7 @@ class SizeCommand(gdb.Command):
 
         head, field = arg_list
         iter = make_iter(head, field)
-
-        return_result(iter.size())
+        return_result(functools.reduce(lambda v, _: v + 1, iter, 0))
 
 
 class AtCommand(gdb.Command):
@@ -123,13 +110,11 @@ class AtCommand(gdb.Command):
             return
 
         head, field, index = arg_list
-        iter = make_iter(head, field)
+        index = int(str(gdb.parse_and_eval(index)), 10)
 
-        index = gdb.parse_and_eval(index)
-
-        entry = iter.at(int(str(index), 10))
-        if entry is not None:
-            return_result(entry)
+        for i, entry in enumerate(make_iter(head, field)):
+            if i == index:
+                return_result(entry)
 
 
 SizeCommand()
