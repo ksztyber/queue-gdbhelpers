@@ -18,12 +18,14 @@ import functools
 
 
 class Iterator:
-    def __init__(self, first, next):
+    def __init__(self, first, next, head, field):
         self._next = next
         self._first = first
+        self._head = head
+        self._field = field
 
-    def _has_next(self, entry, head):
-        if entry == gdb.parse_and_eval(head).address:
+    def _has_next(self, entry):
+        if entry == gdb.parse_and_eval(self._head).address:
             return False
 
         if int(str(entry), 16) == 0:
@@ -31,36 +33,36 @@ class Iterator:
 
         return True
 
-    def first(self, head):
-        return gdb.parse_and_eval(head)[self._first]
+    def first(self):
+        return gdb.parse_and_eval(self._head)[self._first]
 
-    def next(self, entry, field):
-        entry = functools.reduce(lambda e, f: e[f], field.split('.'),
+    def next(self, entry):
+        entry = functools.reduce(lambda e, f: e[f], self._field.split('.'),
                                  entry.dereference())
         return entry[self._next]
 
-    def size(self, head, field):
-        entry = self.first(head)
+    def size(self):
+        entry = self.first()
         count = 0
 
         try:
-            while self._has_next(entry, head):
-                entry = self.next(entry, field)
+            while self._has_next(entry):
+                entry = self.next(entry)
                 count += 1
         except gdb.MemoryError:
             pass
 
         return count
 
-    def at(self, head, field, index):
-        entry = self.first(head)
+    def at(self, index):
+        entry = self.first()
 
         try:
-            while self._has_next(entry, head):
+            while self._has_next(entry):
                 if index == 0:
                     return entry
 
-                entry = self.next(entry, field)
+                entry = self.next(entry)
                 index -= 1
         except gdb.MemoryError:
             pass
@@ -68,7 +70,7 @@ class Iterator:
         return None
 
 
-def make_iter(head):
+def make_iter(head, field):
     Container = namedtuple('Container', ['first', 'next'])
     containers = [Container('lh_first',     'le_next'),
                   Container('slh_first',    'sle_next'),
@@ -77,12 +79,12 @@ def make_iter(head):
                   Container('tqh_first',    'tqe_next'),
                   Container('cqh_first',    'cqe_next')]
 
-    head = gdb.parse_and_eval(head)
+    headobj = gdb.parse_and_eval(head)
 
     for c in containers:
         try:
-            if head[c.first] is not None:
-                return Iterator(c.first, c.next)
+            if headobj[c.first] is not None:
+                return Iterator(c.first, c.next, head, field)
         except gdb.error:
             pass
 
@@ -112,9 +114,9 @@ class SizeCommand(gdb.Command):
             return
 
         head, field = arg_list
-        iter = make_iter(head)
+        iter = make_iter(head, field)
 
-        return_result(iter.size(head, field))
+        return_result(iter.size())
 
 
 class AtCommand(gdb.Command):
@@ -130,11 +132,11 @@ class AtCommand(gdb.Command):
             return
 
         head, field, index = arg_list
-        iter = make_iter(head)
+        iter = make_iter(head, field)
 
         index = gdb.parse_and_eval(index)
 
-        entry = iter.at(head, field, int(str(index), 10))
+        entry = iter.at(int(str(index), 10))
         if entry is not None:
             return_result(entry)
 
