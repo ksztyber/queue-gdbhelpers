@@ -61,6 +61,51 @@ define test_item
 		set $idx = $idx + 1
 	end
 
+	# These foreach tests assume MAX_ITEMS == 128
+	set $idx = 0
+	queue-foreach $arg0_head link
+	while $idx < MAX_ITEMS
+		set $val = $$127.id
+		if $val != $idx + 1
+			print_status "$arg0_head foreach" FAIL
+			set $idx = MAX_ITEMS
+			set $rc = -1
+		end
+
+		set $idx = $idx + 1
+		# Print the value to advance $$, so that a constant 127 can be used
+		print $val
+	end
+
+	set $idx = 0
+	queue-foreach $arg0_head link id
+	while $idx < MAX_ITEMS
+		set $val = $$127
+		if $val != $idx + 1
+			print_status "$arg0_head foreach id" FAIL
+			set $idx = MAX_ITEMS
+			set $rc = -1
+		end
+
+		set $idx = $idx + 1
+		print $val
+	end
+
+	set $idx = 0
+	queue-foreach $arg0_inner_head inner.link id
+	while $idx < MAX_ITEMS
+		set $val = $$127
+		if $val != $idx + 1
+			print_status "$arg0_inner_head foreach id" FAIL
+			set $idx = MAX_ITEMS
+			set $rc = -1
+		end
+
+		set $idx = $idx + 1
+		# Print the value to advance $$, so that a constant 127 can be used
+		print $val
+	end
+
 	if $rc == 0
 		print_status "$arg0" OK
 	end
