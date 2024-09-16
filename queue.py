@@ -18,7 +18,7 @@ import functools
 
 
 class Iterator:
-    def __init__(self, first, next, head, field):
+    def __init__(self, head, field, first, next):
         self._next = next
         self._first = gdb.parse_and_eval(head)[first]
         self._head = head
@@ -32,6 +32,11 @@ class Iterator:
             return True
         return False
 
+    def _deref(self, ptr, field):
+        entry = functools.reduce(lambda e, f: e[f], self._field.split('.'),
+                                 ptr.dereference())[field]
+        return None if self._is_empty(entry) else entry
+
     def __iter__(self):
         self._current = None if self._is_empty(self._first) else self._first
         return self
@@ -41,32 +46,57 @@ class Iterator:
             if self._current is None:
                 raise StopIteration
             current = self._current
-            entry = functools.reduce(lambda e, f: e[f], self._field.split('.'),
-                                     self._current.dereference())[self._next]
-            self._current = None if self._is_empty(entry) else entry
+            self._current = self._deref(current, self._next)
             return current
         except gdb.MemoryError:
             raise StopIteration
 
 
+class TreeIterator(Iterator):
+    def __init__(self, head, field, root, left, right):
+        super().__init__(head, field, root, None)
+        self._left = left
+        self._right = right
+
+    def _left_node(self, node):
+        return self._deref(node, self._left)
+
+    def _right_node(self, node):
+        return self._deref(node, self._right)
+
+    def _next_nodes(self, current):
+        if current is None or self._is_empty(current):
+            return None
+        yield from self._next_nodes(self._left_node(current))
+        yield current
+        yield from self._next_nodes(self._right_node(current))
+
+    def __iter__(self):
+        return self.__next__()
+
+    def __next__(self):
+        yield from self._next_nodes(self._first)
+
+
 def make_iter(head, field):
-    Container = namedtuple('Container', ['first', 'next'])
-    containers = [Container('lh_first',     'le_next'),
-                  Container('slh_first',    'sle_next'),
-                  Container('stqh_first',   'stqe_next'),
-                  Container('sqh_first',    'sqe_next'),
-                  Container('tqh_first',    'tqe_next'),
-                  Container('cqh_first',    'cqe_next')]
+    Container = namedtuple('Container', ['type', 'head', 'params'])
+    containers = [
+        Container(Iterator, 'lh_first', ['le_next']),
+        Container(Iterator, 'slh_first', ['sle_next']),
+        Container(Iterator, 'stqh_first', ['stqe_next']),
+        Container(Iterator, 'sqh_first', ['sqe_next']),
+        Container(Iterator, 'tqh_first', ['tqe_next']),
+        Container(Iterator, 'cqh_first', ['cqe_next']),
+        Container(TreeIterator, 'sph_root', ['spe_left', 'spe_right']),
+        Container(TreeIterator, 'rbh_root', ['rbe_left', 'rbe_right'])]
 
     headobj = gdb.parse_and_eval(head)
-
     for c in containers:
         try:
-            if headobj[c.first] is not None:
-                return Iterator(c.first, c.next, head, field)
-        except gdb.error:
+            if headobj[c.head] is not None:
+                return c.type(head, field, c.head, *c.params)
+        except gdb.error as err:
             pass
-
     raise ValueError('Unknown container type')
 
 

@@ -4,8 +4,7 @@ define print_status
 	printf "%-40s %s\n", $arg0 ":", "$arg1"
 end
 
-define test_item
-	set $rc = 0
+define test_outer
 	queue-size $arg0_head link
 	if $ != MAX_ITEMS
 		print_status "$arg0_head size" FAIL
@@ -21,39 +20,12 @@ define test_item
 		print_status "$arg0_empty_head size" FAIL
 		set $rc = -1
 	end
-	queue-size $arg0_inner_head inner.link
-	if $ != MAX_ITEMS
-		print_status "$arg0_inner_head size" FAIL
-		set $rc = -1
-	end
-	queue-size $arg0_inner_single_head inner.link
-	if $ != 1
-		print_status "$arg0_inner_single_head size" FAIL
-		set $rc = -1
-	end
-	queue-size $arg0_inner_empty_head inner.link
-	if $ != 0
-		print_status "$arg0_inner_empty_head size" FAIL
-		set $rc = -1
-	end
 
 	set $idx = 0
 	while $idx < MAX_ITEMS
 		queue-at $arg0_head link $idx
 		if $.id != $idx + 1
 			print_status "$arg0_head at" FAIL
-			set $idx = MAX_ITEMS
-			set $rc = -1
-		end
-
-		set $idx = $idx + 1
-	end
-
-	set $idx = 0
-	while $idx < MAX_ITEMS
-		queue-at $arg0_inner_head inner.link $idx
-		if $.id != $idx + 1
-			print_status "$arg0_inner_head at" FAIL
 			set $idx = MAX_ITEMS
 			set $rc = -1
 		end
@@ -90,6 +62,36 @@ define test_item
 		set $idx = $idx + 1
 		print $val
 	end
+end
+
+define test_inner
+	queue-size $arg0_inner_head inner.link
+	if $ != MAX_ITEMS
+		print_status "$arg0_inner_head size" FAIL
+		set $rc = -1
+	end
+	queue-size $arg0_inner_single_head inner.link
+	if $ != 1
+		print_status "$arg0_inner_single_head size" FAIL
+		set $rc = -1
+	end
+	queue-size $arg0_inner_empty_head inner.link
+	if $ != 0
+		print_status "$arg0_inner_empty_head size" FAIL
+		set $rc = -1
+	end
+
+	set $idx = 0
+	while $idx < MAX_ITEMS
+		queue-at $arg0_inner_head inner.link $idx
+		if $.id != $idx + 1
+			print_status "$arg0_inner_head at" FAIL
+			set $idx = MAX_ITEMS
+			set $rc = -1
+		end
+
+		set $idx = $idx + 1
+	end
 
 	set $idx = 0
 	queue-foreach $arg0_inner_head inner.link id
@@ -105,7 +107,20 @@ define test_item
 		# Print the value to advance $$, so that a constant 127 can be used
 		print $val
 	end
+end
 
+define test_queue
+	set $rc = 0
+	test_outer $arg0
+	test_inner $arg0
+	if $rc == 0
+		print_status "$arg0" OK
+	end
+end
+
+define test_tree
+	set $rc = 0
+	test_outer $arg0
 	if $rc == 0
 		print_status "$arg0" OK
 	end
@@ -115,12 +130,14 @@ set pagination off
 
 b main
 commands 1
-	test_item LIST
-	test_item SLIST
-	test_item SIMPLEQ
-	test_item TAILQ
-	test_item STAILQ
-	test_item CIRCLEQ 
+	test_queue LIST
+	test_queue SLIST
+	test_queue SIMPLEQ
+	test_queue TAILQ
+	test_queue STAILQ
+	test_queue CIRCLEQ
+	test_tree SPLAY
+	test_tree RB
 end
 
 run
