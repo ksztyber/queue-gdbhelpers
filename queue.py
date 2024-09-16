@@ -20,13 +20,13 @@ import functools
 class Iterator:
     def __init__(self, head, field, first, next):
         self._next = next
-        self._first = gdb.parse_and_eval(head)[first]
+        self._first = head[first]
         self._head = head
         self._field = field
         self._current = None
 
     def _is_empty(self, entry):
-        if entry == gdb.parse_and_eval(self._head).address:
+        if entry == self._head.address:
             return True
         if int(str(entry), 16) == 0:
             return True
@@ -94,7 +94,7 @@ def make_iter(head, field):
     for c in containers:
         try:
             if headobj[c.head] is not None:
-                return c.type(head, field, c.head, *c.params)
+                return c.type(headobj, field, c.head, *c.params)
         except gdb.error as err:
             pass
     raise ValueError('Unknown container type')
