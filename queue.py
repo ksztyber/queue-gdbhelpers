@@ -107,7 +107,8 @@ def print_result(value, expr=None):
         cmd = 'print ({}({}){}){}'.format(dereference, value.type, value, expr)
     else:
         if expr is not None:
-            raise ValueError(f'Invalid expression "{expr}" on object of type {type(value)}')
+            raise ValueError(f'Invalid expression "{expr}" on object '
+                             f'of type {type(value)}')
         cmd = 'print {}'.format(value)
 
     gdb.execute(cmd)
